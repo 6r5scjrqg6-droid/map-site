@@ -37,8 +37,9 @@
       attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
-    const baseStyle  = { color:'#374151', weight:0.5, fillColor:'#e5e7eb', fillOpacity:.6 };
-    const hoverStyle = { color:'#111827', weight:1.5, fillColor:'#86efac', fillOpacity:.85 };
+    // 預設樣式與 hover 樣式
+    const baseStyle  = { color:'#374151', weight:0.5, fillColor:'#e5e7eb', fillOpacity:0.45 };
+    const hoverStyle = { color:'#111827', weight:1.5, fillColor:'#86efac', fillOpacity:0.65 };
 
     fetch('data/latvia_adminnew.geojson')
       .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
@@ -75,4 +76,3 @@
   </script>
 </body>
 </html>
-
