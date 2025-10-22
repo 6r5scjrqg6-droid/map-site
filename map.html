@@ -17,16 +17,20 @@
       filter: drop-shadow(0 5px 8px rgba(0,0,0,.18));
     }
 
-    .panel{
-      position:absolute;right:12px;top:12px;background:#fff;padding:10px 12px;border-radius:12px;
-      box-shadow:0 10px 24px rgba(0,0,0,.12);
-      font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;font-size:12px
+    .leaflet-tooltip {
+      font-family: "Microsoft JhengHei", 微軟正黑體, sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid #ccc;
+      padding: 4px 8px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="panel"><a href="./">← 回首頁</a></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
@@ -50,8 +54,12 @@
             const p = f.properties || {};
             const name = p.NOSAUKUMS || p.name || '未命名';
 
-            // popup 只顯示名稱
-            lyr.bindPopup(`<strong>${name}</strong>`);
+            // Tooltip（滑鼠移上時顯示）
+            lyr.bindTooltip(name, {
+              permanent: false,
+              direction: "top",
+              opacity: 0.9
+            });
 
             lyr.on('mouseover', e => {
               e.target.setStyle(hoverStyle);
@@ -76,3 +84,4 @@
   </script>
 </body>
 </html>
+
