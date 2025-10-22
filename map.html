@@ -1,19 +1,59 @@
-fetch('data/latvia_admin.geojson')
-  .then(response => response.json())
-  .then(data => {
-    L.geoJSON(data, {
-      onEachFeature: function (feature, layer) {
-        layer.bindPopup(`
-          <strong>${feature.properties.NOSAUKUMS}</strong><br>
-          類型：${feature.properties.VEIDS}<br>
-          面積：${feature.properties.PLAT_KVKM} km²
-        `);
-        layer.on('mouseover', function () {
-          this.setStyle({ weight: 3, color: '#00f' });
-        });
-        layer.on('mouseout', function () {
-          this.setStyle({ weight: 1, color: '#333' });
-        });
-      }
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>拉脫維亞行政區地圖</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    #map { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // 初始化地圖
+    const map = L.map('map').setView([56.95, 24.1], 7); // 拉脫維亞中心點
+
+    // 加入底圖
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap'
     }).addTo(map);
-  });
+
+    // 載入 GeoJSON
+    fetch('data/latvia_admin.geojson')
+      .then(response => response.json())
+      .then(data => {
+        L.geoJSON(data, {
+          onEachFeature: function (feature, layer) {
+            layer.bindPopup(`
+              <strong>${feature.properties.NOSAUKUMS}</strong><br>
+              類型：${feature.properties.VEIDS}<br>
+              面積：${feature.properties.PLAT_KVKM} km²
+            `);
+
+            layer.on('mouseover', function () {
+              this.setStyle({ weight: 3, color: '#00f' });
+            });
+            layer.on('mouseout', function () {
+              this.setStyle({ weight: 1, color: '#333' });
+            });
+          },
+          style: {
+            color: '#333',
+            weight: 1,
+            fillColor: '#ffa500',
+            fillOpacity: 0.4
+          }
+        }).addTo(map);
+      });
+  </script>
+</body>
+</html>
