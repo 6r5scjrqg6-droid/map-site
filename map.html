@@ -1,59 +1,76 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>拉脫維亞行政區地圖</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
-    html, body { height: 100%; margin: 0; }
-    #map { width: 100%; height: 100%; }
+    html,body{height:100%;margin:0}
+    #map{height:100%}
+    .panel{position:absolute;right:12px;top:12px;background:#fff;padding:8px 10px;border-radius:10px;
+      box-shadow:0 8px 24px rgba(0,0,0,.12);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;font-size:12px}
+    .err{color:#b91c1c;max-width:300px;line-height:1.3;margin-top:6px}
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div class="panel">
+    <div><a href="./">← 回首頁</a></div>
+    <div id="status" class="err"></div>
+  </div>
 
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
   <script>
-    // 初始化地圖
-    const map = L.map('map').setView([56.95, 24.1], 7); // 拉脫維亞中心點
+  // 內建備援（兩個方塊）：讀不到外部檔時也會畫出來
+  const FALLBACK = {"type":"FeatureCollection","features":[
+    {"type":"Feature","properties":{"NOSAUKUMS":"示例 A","VEIDS":"novads","PLAT_KVKM":123},
+     "geometry":{"type":"Polygon","coordinates":[[[24.0,56.9],[24.6,56.9],[24.6,57.2],[24.0,57.2],[24.0,56.9]]]}},
+    {"type":"Feature","properties":{"NOSAUKUMS":"示例 B","VEIDS":"novads","PLAT_KVKM":456},
+     "geometry":{"type":"Polygon","coordinates":[[[25.0,56.6],[25.5,56.6],[25.5,56.95],[25.0,56.95],[25.0,56.6]]]}}
+  ]};
 
-    // 加入底圖
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; OpenStreetMap'
+  const map = L.map('map').setView([56.95, 24.1], 7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; OSM' }).addTo(map);
+
+  const baseStyle = { color:'#333', weight:1, fillColor:'#ffb74d', fillOpacity:.45 };
+  const hoverStyle = { color:'#111', weight:2, fillColor:'#ffd54f', fillOpacity:.75 };
+
+  function draw(geojson){
+    const layer = L.geoJSON(geojson, {
+      style: baseStyle,
+      onEachFeature: (f, lyr) => {
+        const p=f.properties||{};
+        lyr.bindTooltip(p.NOSAUKUMS || '未命名', {sticky:true});
+        lyr.on('mouseover', e=>e.target.setStyle(hoverStyle));
+        lyr.on('mouseout',  e=>layer.resetStyle(e.target));
+        lyr.on('click',     e=>{
+          const html = `<b>${p.NOSAUKUMS||'未命名'}</b><br>類型：${p.VEIDS||'-'}<br>面積：${p.PLAT_KVKM||'-'} km²`;
+          L.popup().setLatLng(e.latlng).setContent(html).openOn(map);
+        });
+      }
     }).addTo(map);
+    try{ const b = layer.getBounds(); if(b.isValid()) map.fitBounds(b,{padding:[16,16]}); }catch(e){}
+  }
 
-    // 載入 GeoJSON
-    fetch('data/latvia_admin.geojson')
-      .then(response => response.json())
-      .then(data => {
-        L.geoJSON(data, {
-          onEachFeature: function (feature, layer) {
-            layer.bindPopup(`
-              <strong>${feature.properties.NOSAUKUMS}</strong><br>
-              類型：${feature.properties.VEIDS}<br>
-              面積：${feature.properties.PLAT_KVKM} km²
-            `);
+  const statusEl = document.getElementById('status');
+  const url = `data/latvia_admin.geojson?v=${Date.now()}`; // 防快取
 
-            layer.on('mouseover', function () {
-              this.setStyle({ weight: 3, color: '#00f' });
-            });
-            layer.on('mouseout', function () {
-              this.setStyle({ weight: 1, color: '#333' });
-            });
-          },
-          style: {
-            color: '#333',
-            weight: 1,
-            fillColor: '#ffa500',
-            fillOpacity: 0.4
-          }
-        }).addTo(map);
-      });
+  fetch(url)
+    .then(r => {
+      console.log('fetch status', r.status, url);
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then(json => { statusEl.textContent=''; draw(json); })
+    .catch(err => {
+      console.error('讀檔失敗：', err);
+      statusEl.textContent = '⚠️ 讀取 data/latvia_admin.geojson 失敗，已顯示測試圖層。請檢查檔名/路徑/大小寫。';
+      draw(FALLBACK);
+    });
   </script>
 </body>
 </html>
