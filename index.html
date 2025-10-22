@@ -1,12 +1,50 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>我的行政區互動地圖</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>我的地圖網站</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      text-align: center;
+    }
+    h1 {
+      font-size: 2rem;
+      color: #333;
+    }
+    p {
+      color: #666;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #0077ff;
+      color: #fff;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.2s ease;
+    }
+    .btn:hover {
+      background-color: #005fd1;
+    }
+  </style>
 </head>
 <body>
-  <h1>🌍 行政區互動地圖</h1>
-  <p>這是首頁，之後會加上連到地圖頁的按鈕。</p>
+  <div class="container">
+    <h1>🌍 我的地圖網站</h1>
+    <p>這裡將來會放地圖！</p>
+    <a class="btn" href="#">目前沒有地圖 😆</a>
+  </div>
 </body>
 </html>
+
+
