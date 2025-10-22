@@ -3,10 +3,58 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>地圖頁</title>
+  <title>拉脫維亞行政區互動地圖</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    html,body{height:100%;margin:0}
+    #map{height:100%}
+    .panel{position:absolute;right:12px;top:12px;background:#fff;padding:10px 12px;border-radius:10px;
+      box-shadow:0 8px 24px rgba(0,0,0,.12);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif}
+    .leaflet-interactive{transition:all .15s ease}
+    a.btn{display:inline-block;margin-top:6px;padding:6px 8px;border:1px solid #ddd;border-radius:8px;text-decoration:none;color:#111}
+    a.btn:hover{background:#f3f4f6}
+  </style>
 </head>
 <body>
-  <h1>🗺️ 這裡是地圖頁面</h1>
-  <p>等下會在這裡放 Leaflet 地圖。</p>
+<div id="map"></div>
+<div class="panel">
+  <div><a href="./">← 回首頁</a></div>
+  <div style="margin-top:6px"><strong>拉脫維亞行政區</strong></div>
+  <a class="btn" href="data/latvia_admin.geojson" download>⬇️ 下載 GeoJSON</a>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map = L.map('map', { scrollWheelZoom:true });
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom: 18, attribution:'&copy; OpenStreetMap'
+}).addTo(map);
+
+// 預設看向拉脫維亞
+map.setView([56.95, 24.1], 6);
+
+fetch('data/latvia_admin.geojson').then(r=>r.json()).then(data=>{
+  const baseStyle = { color:'#555', weight:1, fillColor:'#cfe3ff', fillOpacity:.45 };
+  const hiStyle   = { color:'#111', weight:2, fillColor:'#ffd54f', fillOpacity:.75 };
+
+  const layer = L.geoJSON(data, {
+    style: baseStyle,
+    onEachFeature: (f, lyr) => {
+      const p = f.properties || {};
+      const name = p.name || p.NAME || p.adminName || '未命名';
+      lyr.bindTooltip(name, {sticky:true});
+      lyr.on('mouseover', e => e.target.setStyle(hiStyle));
+      lyr.on('mouseout',  e => layer.resetStyle(e.target));
+      lyr.on('click',     e => {
+        const html = `<b>${name}</b><hr style="border:none;border-top:1px solid #e5e7eb">
+                      <div>類型：${p.level || p.type || '-'}</div>`;
+        L.popup().setLatLng(e.latlng).setContent(html).openOn(map);
+      });
+    }
+  }).addTo(map);
+
+  try{ const b = layer.getBounds(); if (b.isValid()) map.fitBounds(b,{padding:[16,16]}); }catch(e){}
+});
+</script>
 </body>
 </html>
