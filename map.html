@@ -4,54 +4,41 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>拉脫維亞行政區地圖</title>
-
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
-    html,
-    body {
-      height: 100%;
-      margin: 0;
-    }
-    #map {
-      height: 100%;
-      width: 100%;
-    }
+    html, body { height: 100%; margin: 0; }
+    #map { height: 100%; width: 100%; }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     // 初始化地圖
-    const map = L.map("map").setView([56.95, 24.1], 7);
+    const map = L.map('map').setView([56.95, 24.1], 7);
 
-    // 加入 OpenStreetMap 底圖
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    // 加底圖
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
-      attribution: "&copy; OpenStreetMap",
+      attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
-    // 載入新的 GeoJSON 檔案
-    fetch("data/atvia_adminnew.geojson")
-      .then((response) => {
+    // 載入 GeoJSON
+    fetch('data/latvia_adminnew.geojson')  // 👈 這裡已對應檔名
+      .then(response => {
         if (!response.ok) {
-          throw new Error("GeoJSON 載入失敗：" + response.status);
+          throw new Error('讀取失敗，狀態碼：' + response.status);
         }
         return response.json();
       })
-      .then((data) => {
+      .then(data => {
         const geoLayer = L.geoJSON(data, {
           style: {
-            color: "#333",
+            color: '#333',
             weight: 1,
-            fillColor: "#ffa500",
-            fillOpacity: 0.4,
+            fillColor: '#ffa500',
+            fillOpacity: 0.4
           },
           onEachFeature: function (feature, layer) {
             layer.bindPopup(`
@@ -59,23 +46,21 @@
               類型：${feature.properties.VEIDS}<br>
               面積：${feature.properties.PLAT_KVKM} km²
             `);
-            layer.on("mouseover", function () {
-              this.setStyle({ weight: 3, color: "#00f" });
+            layer.on('mouseover', function () {
+              this.setStyle({ weight: 3, color: '#00f' });
             });
-            layer.on("mouseout", function () {
-              this.setStyle({ weight: 1, color: "#333" });
+            layer.on('mouseout', function () {
+              this.setStyle({ weight: 1, color: '#333' });
             });
-          },
+          }
         }).addTo(map);
 
-        // 自動縮放至圖層範圍
         map.fitBounds(geoLayer.getBounds());
       })
-      .catch((err) => {
+      .catch(err => {
         console.error(err);
-        alert("載入 GeoJSON 失敗，請確認檔名與路徑是否正確！");
+        alert('⚠️ GeoJSON 載入失敗，請確認檔名與路徑！');
       });
   </script>
 </body>
 </html>
-
