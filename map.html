@@ -1,81 +1,81 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>拉脫維亞行政區地圖</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
   <style>
-    html,body{height:100%;margin:0}
-    #map{height:100%}
-    .panel{position:absolute;right:12px;top:12px;background:#fff;padding:8px 10px;border-radius:10px;
-      box-shadow:0 8px 24px rgba(0,0,0,.12);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;font-size:12px}
-    .ok{color:#16a34a}.err{color:#b91c1c}.muted{color:#6b7280}
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="panel">
-    <div><a href="./">← 回首頁</a></div>
-    <div id="status" class="muted">正在載入 GeoJSON…</div>
-  </div>
 
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-  const map = L.map('map').setView([56.95, 24.1], 7);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; OSM'}).addTo(map);
+    // 初始化地圖
+    const map = L.map("map").setView([56.95, 24.1], 7);
 
-  const baseStyle={color:'#333',weight:1,fillColor:'#ffb74d',fillOpacity:.45};
-  const hoverStyle={color:'#111',weight:2,fillColor:'#ffd54f',fillOpacity:.75};
-  const statusEl=document.getElementById('status');
+    // 加入 OpenStreetMap 底圖
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap",
+    }).addTo(map);
 
-  function draw(geo){
-    const layer=L.geoJSON(geo,{style:baseStyle,onEachFeature:(f,lyr)=>{
-      const p=f.properties||{};
-      const name=p.NOSAUKUMS||p.name||'未命名';
-      lyr.bindTooltip(name,{sticky:true});
-      lyr.on('mouseover',e=>e.target.setStyle(hoverStyle));
-      lyr.on('mouseout',e=>layer.resetStyle(e.target));
-      lyr.on('click',e=>{
-        const html=`<b>${name}</b><br>類型：${p.VEIDS||p.type||'-'}<br>面積：${p.PLAT_KVKM||'-'} km²`;
-        L.popup().setLatLng(e.latlng).setContent(html).openOn(map);
+    // 載入新的 GeoJSON 檔案
+    fetch("data/atvia_adminnew.geojson")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("GeoJSON 載入失敗：" + response.status);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        const geoLayer = L.geoJSON(data, {
+          style: {
+            color: "#333",
+            weight: 1,
+            fillColor: "#ffa500",
+            fillOpacity: 0.4,
+          },
+          onEachFeature: function (feature, layer) {
+            layer.bindPopup(`
+              <strong>${feature.properties.NOSAUKUMS}</strong><br>
+              類型：${feature.properties.VEIDS}<br>
+              面積：${feature.properties.PLAT_KVKM} km²
+            `);
+            layer.on("mouseover", function () {
+              this.setStyle({ weight: 3, color: "#00f" });
+            });
+            layer.on("mouseout", function () {
+              this.setStyle({ weight: 1, color: "#333" });
+            });
+          },
+        }).addTo(map);
+
+        // 自動縮放至圖層範圍
+        map.fitBounds(geoLayer.getBounds());
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("載入 GeoJSON 失敗，請確認檔名與路徑是否正確！");
       });
-    }}).addTo(map);
-    try{const b=layer.getBounds(); if(b.isValid()) map.fitBounds(b,{padding:[16,16]});}catch(e){}
-  }
-
-  // 備援：兩個橘色方塊
-  const FALLBACK={"type":"FeatureCollection","features":[
-    {"type":"Feature","properties":{"NOSAUKUMS":"示例 A"},"geometry":{"type":"Polygon","coordinates":[[[24.0,56.9],[24.6,56.9],[24.6,57.2],[24.0,57.2],[24.0,56.9]]]}},
-    {"type":"Feature","properties":{"NOSAUKUMS":"示例 B"},"geometry":{"type":"Polygon","coordinates":[[[25.0,56.6],[25.5,56.6],[25.5,56.95],[25.0,56.95],[25.0,56.6]]]}}
-  ]};
-
-  // 連續嘗試兩個路徑：相對 + 絕對（避免路徑判斷問題）
-  const base = location.origin + location.pathname.replace(/\/[^/]*$/,'/');
-  const candidates = [
-    'data/latvia_admin.geojson?v=' + Date.now(),
-    base + 'data/latvia_admin.geojson'
-  ];
-
-  (async ()=>{
-    for (const url of candidates){
-      try{
-        statusEl.textContent = '嘗試讀取：' + url;
-        const r = await fetch(url, {cache:'no-store'});
-        console.log('fetch', url, r.status);
-        if(!r.ok) throw new Error('HTTP ' + r.status);
-        const json = await r.json();
-        statusEl.innerHTML = '✅ 載入成功：<span class="ok">'+ url +'</span>';
-        draw(json);
-        return; // 成功就結束
-      }catch(err){
-        console.error('讀取失敗', url, err);
-      }
-    }
-    // 全部失敗 → 畫備援
-    statusEl.innerHTML = '⚠️ 載入失敗，已顯示備援圖層。請確認 <code>data/latvia_admin.geojson</code> 在根目錄的 data/ 內，檔名大小寫完全一致。';
-    draw(FALLBACK);
-  })();
   </script>
 </body>
 </html>
+
