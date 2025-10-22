@@ -8,58 +8,81 @@
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
+
+    /* 漂亮但低調的預設風格 */
+    .leaflet-interactive {
+      transition: fill-opacity .12s ease, stroke-width .12s ease, filter .12s ease;
+      cursor: pointer;
+    }
+    /* 滑過時加陰影的 class（JS 會加/移除） */
+    .lift {
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.18));
+    }
+
+    /* 右上資訊小板 */
+    .panel{
+      position:absolute;right:12px;top:12px;background:#fff;padding:10px 12px;border-radius:12px;
+      box-shadow:0 10px 24px rgba(0,0,0,.12);
+      font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;font-size:12px
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div class="panel"><a href="./">← 回首頁</a></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // 初始化地圖
+    // 中心在里加；zoom 7 看全國
     const map = L.map('map').setView([56.95, 24.1], 7);
 
-    // 加底圖
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; OpenStreetMap'
+      maxZoom: 18, attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
-    // 載入 GeoJSON
-    fetch('data/latvia_adminnew.geojson')  // 👈 這裡已對應檔名
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('讀取失敗，狀態碼：' + response.status);
-        }
-        return response.json();
-      })
+    // 👉 色票：低調灰 + 清爽青綠（你不喜歡橘 & 藍）
+    const baseStyle  = { color:'#374151', weight:1, fillColor:'#e5e7eb', fillOpacity:.55 }; // 深灰框 / 淺灰填
+    const hoverStyle = { color:'#111827', weight:2.5, fillColor:'#a7f3d0', fillOpacity:.85 }; // 更深框 / 青綠填
+
+    // 載入你的新檔名
+    fetch('data/latvia_adminnew.geojson')
+      .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(data => {
-        const geoLayer = L.geoJSON(data, {
-          style: {
-            color: '#333',
-            weight: 1,
-            fillColor: '#ffa500',
-            fillOpacity: 0.4
-          },
-          onEachFeature: function (feature, layer) {
-            layer.bindPopup(`
-              <strong>${feature.properties.NOSAUKUMS}</strong><br>
-              類型：${feature.properties.VEIDS}<br>
-              面積：${feature.properties.PLAT_KVKM} km²
-            `);
-            layer.on('mouseover', function () {
-              this.setStyle({ weight: 3, color: '#00f' });
+        const layer = L.geoJSON(data, {
+          style: baseStyle,
+          onEachFeature: (f, lyr) => {
+            const p = f.properties || {};
+            const name = p.NOSAUKUMS || p.name || '未命名';
+
+            // 提示 & popup
+            lyr.bindTooltip(name, {sticky:true});
+            lyr.on('click', e => {
+              const html = `<b style="font-size:14px">${name}</b><hr style="border:none;border-top:1px solid #e5e7eb">
+                           類型：${p.VEIDS || '-'}<br>面積：${p.PLAT_KVKM || '-'} km²`;
+              L.popup().setLatLng(e.latlng).setContent(html).openOn(map);
             });
-            layer.on('mouseout', function () {
-              this.setStyle({ weight: 1, color: '#333' });
+
+            // Hover：加粗、換色、加陰影、前置
+            lyr.on('mouseover', e => {
+              e.target.setStyle(hoverStyle);
+              const el = e.target.getElement?.();
+              if (el) el.classList.add('lift');
+              e.target.bringToFront();
+            });
+            lyr.on('mouseout', e => {
+              layer.resetStyle(e.target);
+              const el = e.target.getElement?.();
+              if (el) el.classList.remove('lift');
             });
           }
         }).addTo(map);
 
-        map.fitBounds(geoLayer.getBounds());
+        // 自動框選全國
+        try { const b = layer.getBounds(); if (b.isValid()) map.fitBounds(b, {padding:[16,16]}); } catch {}
       })
       .catch(err => {
         console.error(err);
-        alert('⚠️ GeoJSON 載入失敗，請確認檔名與路徑！');
+        alert('⚠️ 載入 data/latvia_adminnew.geojson 失敗；請確認路徑與檔名大小寫。');
       });
   </script>
 </body>
